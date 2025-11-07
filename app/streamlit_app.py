@@ -87,13 +87,56 @@ def load_models():
     
     # Show warnings for non-critical model failures
     if errors:
-        missing_models = [e.split(':')[0] for e in errors if 'not found' in e or 'Gradient Boosting' in e]
+        import sys
+        import sklearn
+        
+        # Display environment info
+        with st.expander("🔍 Environment Diagnostics", expanded=False):
+            st.code(f"""
+Python Version: {sys.version.split()[0]}
+scikit-learn Version: {sklearn.__version__}
+            """)
+        
+        missing_models = []
+        version_errors = []
+        other_errors = []
+        
+        for error in errors:
+            model_name = error.split(':')[0]
+            error_msg = error.split(':', 1)[1].strip() if ':' in error else error
+            
+            if 'not found' in error_msg.lower():
+                missing_models.append((model_name, error_msg))
+            elif 'CyHalfBinomialLoss' in error_msg or '__pyx_unpickle' in error_msg or '_loss' in error_msg or 'No module named' in error_msg:
+                version_errors.append((model_name, error_msg))
+            else:
+                other_errors.append((model_name, error_msg))
+        
+        if version_errors:
+            st.warning("⚠️ **Version Compatibility Error**")
+            for model_name, error_msg in version_errors:
+                st.warning(f"**{model_name}**: {error_msg}")
+            st.info("""
+**Solution**: Models need to be retrained with scikit-learn>=1.6.0 for Python 3.13:
+```bash
+pip install scikit-learn>=1.6.0
+python src/10_tree_classifier.py
+python src/20_survivor_clustering.py
+```
+            """)
+        
         if missing_models:
-            st.warning(f"⚠️ Some models could not be loaded: {', '.join(missing_models)}")
-            st.info("The app will continue with available models. Some features may be limited.")
-            if 'Gradient Boosting' in errors:
-                st.info("💡 Tip: Gradient Boosting model requires scikit-learn==1.3.2. "
-                       "If you see version compatibility errors, please retrain the model with the correct version.")
+            st.warning("⚠️ **Model Files Not Found**")
+            for model_name, error_msg in missing_models:
+                st.warning(f"**{model_name}**: {error_msg}")
+            st.info("Please run the training script first: `python src/10_tree_classifier.py`")
+        
+        if other_errors:
+            st.warning("⚠️ **Other Errors**")
+            for model_name, error_msg in other_errors:
+                st.warning(f"**{model_name}**: {error_msg}")
+        
+        st.success("✅ **Application Status**: The app will continue with available models. Core functionality (Decision Tree prediction) is still available.")
     
     return models
 
