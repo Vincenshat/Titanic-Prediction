@@ -33,30 +33,67 @@ sns.set_palette("husl")
 
 @st.cache_resource
 def load_models():
-    """Load all trained models."""
+    """Load all trained models with individual error handling."""
     base_dir = Path(__file__).parent.parent
     models_dir = base_dir / 'models'
     
     models = {}
-    try:
-        with open(models_dir / 'decision_tree.pkl', 'rb') as f:
-            models['Decision Tree'] = pickle.load(f)
-        with open(models_dir / 'random_forest.pkl', 'rb') as f:
-            models['Random Forest'] = pickle.load(f)
-        with open(models_dir / 'gradient_boosting.pkl', 'rb') as f:
-            models['Gradient Boosting'] = pickle.load(f)
-        with open(models_dir / 'kmeans.pkl', 'rb') as f:
-            models['KMeans'] = pickle.load(f)
-        with open(models_dir / 'scaler.pkl', 'rb') as f:
-            models['Scaler'] = pickle.load(f)
-        with open(models_dir / 'feature_names.pkl', 'rb') as f:
-            models['feature_names'] = pickle.load(f)
-        with open(models_dir / 'clustering_feature_names.pkl', 'rb') as f:
-            models['clustering_feature_names'] = pickle.load(f)
-    except Exception as e:
-        st.error(f"Error loading models: {e}")
+    errors = []
+    
+    # Define model files to load
+    model_files = {
+        'Decision Tree': 'decision_tree.pkl',
+        'Random Forest': 'random_forest.pkl',
+        'Gradient Boosting': 'gradient_boosting.pkl',
+        'KMeans': 'kmeans.pkl',
+        'Scaler': 'scaler.pkl',
+        'feature_names': 'feature_names.pkl',
+        'clustering_feature_names': 'clustering_feature_names.pkl'
+    }
+    
+    # Load each model individually
+    for model_name, filename in model_files.items():
+        try:
+            filepath = models_dir / filename
+            if not filepath.exists():
+                errors.append(f"{model_name}: File not found ({filename})")
+                continue
+                
+            with open(filepath, 'rb') as f:
+                models[model_name] = pickle.load(f)
+        except Exception as e:
+            error_msg = f"{model_name}: {str(e)}"
+            errors.append(error_msg)
+            # Continue loading other models even if one fails
+    
+    # Check if essential models are loaded
+    if 'Decision Tree' not in models:
+        st.error("❌ Critical Error: Decision Tree model could not be loaded!")
         st.info("Please run the training scripts first: python src/10_tree_classifier.py")
+        if errors:
+            with st.expander("Error Details", expanded=True):
+                for error in errors:
+                    st.text(error)
         return None
+    
+    if 'feature_names' not in models:
+        st.error("❌ Critical Error: Feature names could not be loaded!")
+        st.info("Please run the training scripts first: python src/10_tree_classifier.py")
+        if errors:
+            with st.expander("Error Details", expanded=True):
+                for error in errors:
+                    st.text(error)
+        return None
+    
+    # Show warnings for non-critical model failures
+    if errors:
+        missing_models = [e.split(':')[0] for e in errors if 'not found' in e or 'Gradient Boosting' in e]
+        if missing_models:
+            st.warning(f"⚠️ Some models could not be loaded: {', '.join(missing_models)}")
+            st.info("The app will continue with available models. Some features may be limited.")
+            if 'Gradient Boosting' in errors:
+                st.info("💡 Tip: Gradient Boosting model requires scikit-learn==1.3.2. "
+                       "If you see version compatibility errors, please retrain the model with the correct version.")
     
     return models
 
@@ -383,20 +420,28 @@ def main():
                 
                 # Also show predictions from other models for comparison
                 with st.expander("📊 Compare All Models", expanded=False):
-                    col1, col2, col3 = st.columns(3)
-                    for idx, (model_name, model) in enumerate([
-                        ('Decision Tree', models['Decision Tree']),
-                        ('Random Forest', models['Random Forest']),
-                        ('Gradient Boosting', models['Gradient Boosting'])
-                    ]):
-                        with [col1, col2, col3][idx]:
-                            try:
-                                proba = model.predict_proba(sample)[0]
-                                pred = model.predict(sample)[0]
-                                st.metric(model_name, f"{proba[1]:.1%}")
-                                st.caption(f"Prediction: {'Survived' if pred == 1 else 'Not Survived'}")
-                            except Exception as e:
-                                st.error(f"Error: {e}")
+                    # Build list of available models
+                    available_models = []
+                    if 'Decision Tree' in models:
+                        available_models.append(('Decision Tree', models['Decision Tree']))
+                    if 'Random Forest' in models:
+                        available_models.append(('Random Forest', models['Random Forest']))
+                    if 'Gradient Boosting' in models:
+                        available_models.append(('Gradient Boosting', models['Gradient Boosting']))
+                    
+                    if available_models:
+                        cols = st.columns(len(available_models))
+                        for idx, (model_name, model) in enumerate(available_models):
+                            with cols[idx]:
+                                try:
+                                    proba = model.predict_proba(sample)[0]
+                                    pred = model.predict(sample)[0]
+                                    st.metric(model_name, f"{proba[1]:.1%}")
+                                    st.caption(f"Prediction: {'Survived' if pred == 1 else 'Not Survived'}")
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
+                    else:
+                        st.warning("No additional models available for comparison.")
             
             except Exception as e:
                 st.error(f"Prediction error: {e}")
