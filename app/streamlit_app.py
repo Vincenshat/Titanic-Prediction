@@ -113,16 +113,28 @@ scikit-learn Version: {sklearn.__version__}
                 other_errors.append((model_name, error_msg))
         
         if version_errors:
-            st.warning("⚠️ **Version Compatibility Error**")
+            st.error("⚠️ **Version Compatibility Error**")
             for model_name, error_msg in version_errors:
-                st.warning(f"**{model_name}**: {error_msg}")
+                st.error(f"**{model_name}**: {error_msg}")
             st.info("""
-**Solution**: Models need to be retrained with scikit-learn>=1.6.0 for Python 3.13:
+**Solution**: This application uses Python 3.13, which requires scikit-learn>=1.6.0. 
+Your models were trained with an older version and need to be retrained:
+
 ```bash
-pip install scikit-learn>=1.6.0
+# Install compatible versions
+pip install -r requirements.txt
+
+# Retrain all models
 python src/10_tree_classifier.py
 python src/20_survivor_clustering.py
+
+# Commit and push the new model files
+git add models/
+git commit -m "Retrain models for Python 3.13 compatibility"
+git push
 ```
+
+**Note**: After retraining, commit the new model files to your repository.
             """)
         
         if missing_models:
