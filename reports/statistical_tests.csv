@@ -1,0 +1,2 @@
+sex_chi2,pclass_chi2,embarked_chi2,age_mannwhitney,fare_mannwhitney
+"{'chi2': 260.71702016732104, 'p_value': 1.1973570627755645e-58, 'significant': True}","{'chi2': 102.88898875696056, 'p_value': 4.549251711298793e-23, 'significant': True}","{'chi2': 25.964452881874784, 'p_value': 2.3008626481449577e-06, 'significant': True}","{'u_stat': 87505.5, 'p_value': 0.08725625257809674, 'significant': False}","{'u_stat': 129951.5, 'p_value': 4.553477179250237e-22, 'significant': True}"

@@ -1,0 +1,4 @@
+Cluster 0 (62 survivors, 18.1%): young, medium fare, third class, large family, mixed gender
+Cluster 1 (135 survivors, 39.5%): young adult, low fare, third class, small family, mixed gender
+Cluster 2 (130 survivors, 38.0%): middle-aged, high fare, first class, small family, mixed gender
+Cluster 3 (15 survivors, 4.4%): young adult, high fare, first class, small family, predominantly female
